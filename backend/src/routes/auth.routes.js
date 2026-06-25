@@ -1,34 +1,48 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { hashPassword, verifyPassword } from '../utils/crypto.js';
 
 export const authRouter = Router();
 
+// SECURED: rate limiting on auth endpoints to slow down brute force / enumeration.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts, please try again later' },
+  // Disabled under the test runner so functional tests stay deterministic.
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
 function signToken(user) {
   const payload = { id: user.id, role: user.role, email: user.email };
-  // VULNERABLE: weak secret, and no expiration when JWT_EXPIRES_IN is empty.
-  const options = config.jwtExpiresIn ? { expiresIn: config.jwtExpiresIn } : {};
-  return jwt.sign(payload, config.jwtSecret, options);
+  // SECURED: strong secret + expiration.
+  return jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+}
+
+// Only expose safe user fields (never the password hash).
+function publicUser(user) {
+  return { id: user.id, username: user.username, email: user.email, role: user.role };
 }
 
 // POST /api/auth/register
-// VULNERABLE (Mass Assignment): the "role" field is taken straight from the
-// request body, so an attacker can register directly as an admin:
-//   { "username":"x","email":"x@x","password":"x","role":"admin" }
-authRouter.post('/register', (req, res) => {
+// SECURED (Mass Assignment): only an explicit whitelist of fields is read, and the
+// role is ALWAYS forced to "user" — it can never be set from the request body.
+authRouter.post('/register', authLimiter, async (req, res) => {
   const { username, email, password } = req.body || {};
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'username, email and password are required' });
   }
-  const role = req.body.role || 'user'; // <-- attacker-controlled privilege
   try {
     const result = db
       .prepare('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)')
-      .run(username, email, hashPassword(password), role);
+      .run(username, email, await hashPassword(password), 'user');
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid);
-    return res.status(201).json({ token: signToken(user), user });
+    return res.status(201).json({ token: signToken(user), user: publicUser(user) });
   } catch (err) {
     if (String(err.message).includes('UNIQUE')) {
       return res.status(409).json({ error: 'Email already registered' });
@@ -38,18 +52,14 @@ authRouter.post('/register', (req, res) => {
 });
 
 // POST /api/auth/login
-// VULNERABLE (Weak Authentication):
-//  - distinct error messages enable user enumeration,
-//  - no rate limiting => brute force possible,
-//  - weak token (see signToken).
-authRouter.post('/login', (req, res) => {
+// SECURED (Weak Authentication): single generic error message (no user enumeration),
+// bcrypt verification, rate limiting, expiring token.
+authRouter.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body || {};
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  if (!user) {
-    return res.status(401).json({ error: 'No account found for this email' }); // enumeration
+  const ok = user && (await verifyPassword(password, user.password));
+  if (!ok) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
-  if (!verifyPassword(password, user.password)) {
-    return res.status(401).json({ error: 'Incorrect password' }); // enumeration
-  }
-  return res.json({ token: signToken(user), user });
+  return res.json({ token: signToken(user), user: publicUser(user) });
 });

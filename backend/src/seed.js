@@ -2,7 +2,7 @@ import { db, initSchema } from './db.js';
 import { hashPassword } from './utils/crypto.js';
 
 // Re-creatable seed: wipes business tables and re-inserts deterministic demo data.
-export function seed() {
+export async function seed() {
   initSchema();
 
   db.exec('DELETE FROM reviews;');
@@ -16,9 +16,9 @@ export function seed() {
     'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)'
   );
   // Test accounts (documented in README)
-  insertUser.run('admin', 'admin@shopsec.local', hashPassword('Admin123!'), 'admin');
-  insertUser.run('alice', 'alice@shopsec.local', hashPassword('Alice123!'), 'user');
-  insertUser.run('bob', 'bob@shopsec.local', hashPassword('Bob123!'), 'user');
+  insertUser.run('admin', 'admin@shopsec.local', await hashPassword('Admin123!'), 'admin');
+  insertUser.run('alice', 'alice@shopsec.local', await hashPassword('Alice123!'), 'user');
+  insertUser.run('bob', 'bob@shopsec.local', await hashPassword('Bob123!'), 'user');
 
   const insertProduct = db.prepare(
     'INSERT INTO products (name, description, price, stock, image_url) VALUES (?, ?, ?, ?, ?)'
@@ -66,3 +66,5 @@ function dbStats() {
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('seed.js')) {
   seed();
 }
+
+export default seed;
