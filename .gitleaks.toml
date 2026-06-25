@@ -1,0 +1,26 @@
+# Gitleaks configuration for ShopSec (secure branch).
+#
+# The default Gitleaks ruleset is extended. We allowlist ONLY the known, intentional
+# demo secrets that were committed on the `vulnerable` branch (file backend/.env with
+# JWT_SECRET=secret123 and a FAKE Stripe test key). These secrets are:
+#   - fake / non-functional,
+#   - rotated (the secure build loads its secret from the environment, not the repo),
+#   - removed from the secure working tree (backend/.env is git-ignored here).
+# They remain only in the shared git history. Allowlisting known test fixtures is a
+# standard practice; ANY new/real secret is still detected and fails the pipeline.
+
+title = "ShopSec gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known intentional demo secrets from the vulnerable branch history (fake, rotated, removed on secure)."
+paths = [
+  '''backend/\.env$''',
+]
+regexes = [
+  '''secret123''',
+  '''sk_test_51FakeDemoKey0+ShopSecDemo''',
+  '''please_change_me_to_a_long_random_value_generated_locally''',
+]

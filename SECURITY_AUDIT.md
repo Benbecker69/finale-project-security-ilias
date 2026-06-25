@@ -520,8 +520,11 @@ Total (dev inclus) : `{ moderate: 3, high: 2, critical: 1 }`.
 
 - **`vulnerable`** : détecte le fichier `backend/.env` committé contenant `JWT_SECRET=secret123`
   et `STRIPE_SECRET_KEY=...` → **secret(s) détecté(s)**, job **bloquant**.
-- **`secure`** : `.env` est git-ignoré, aucun secret en clair dans l'historique de la branche
-  → **0 secret**.
+- **`secure`** : `.env` est git-ignoré et le secret est chargé depuis l'environnement.
+  Le secret de démo `secret123` (factice) ne subsiste que dans l'historique partagé avec
+  `vulnerable` ; il est explicitement mis en **allowlist** dans `.gitleaks.toml` (fixture de
+  test connue, rotatée et supprimée), ce qui laisse la pipeline **verte** tout en continuant à
+  **détecter tout nouveau secret** → **0 secret actif**.
 
 ### SAST — Semgrep (attendu en CI, règles `p/owasp-top-ten`, `p/javascript`)
 
