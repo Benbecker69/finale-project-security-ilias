@@ -496,8 +496,22 @@ DAST → **échec du job en cas de faille critique ou de secret détecté**.
 
 Les contrôles SAST (Semgrep), secret scanning (Gitleaks) et DAST (OWASP ZAP) s'exécutent dans
 la **CI GitHub Actions** (`.github/workflows/security.yml`, branche `secure`) où ces outils sont
-nativement supportés. Le SCA (`npm audit`) et les tests ont été exécutés localement ; résultats
-réels ci-dessous.
+nativement supportés. Le SCA (`npm audit`) et les tests ont aussi été exécutés localement.
+
+### ✅ Exécution réelle de la pipeline (branche `secure`)
+
+Run GitHub Actions **réussi — tous les jobs verts** :
+
+| Job | Résultat |
+|-----|----------|
+| Application tests (Vitest + build Vue) | ✅ success (16/16 tests) |
+| SAST (Semgrep `p/owasp-top-ten` + `p/javascript`) | ✅ success (aucune faille ERROR) |
+| SCA (`npm audit --omit=dev --audit-level=high`) | ✅ success (0 vuln. prod) |
+| Secret scanning (Gitleaks) | ✅ success (0 secret actif) |
+| DAST (OWASP ZAP baseline) | ✅ success (rapport, non bloquant) |
+
+> Onglet **Actions** du dépôt : `DevSecOps Security Pipeline` sur la branche `secure`.
+> Sur la branche `vulnerable`, les mêmes contrôles remonteraient les failles décrites ci-dessous.
 
 ### SCA — `npm audit` (résultats réels)
 
