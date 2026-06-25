@@ -11,7 +11,12 @@ build/
 *.sqlite
 *.sqlite3
 *.db
-backend/data/*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+backend/data/
+
+# Assignment subject (not a deliverable)
+*.pdf
 
 # Logs
 *.log
