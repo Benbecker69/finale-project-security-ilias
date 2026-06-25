@@ -1,5 +1,7 @@
 # ShopSec — Application vulnérable, sécurisation & pipeline DevSecOps
 
+[![DevSecOps Security Pipeline](https://github.com/Benbecker69/finale-project-security-ilias/actions/workflows/security.yml/badge.svg?branch=secure)](https://github.com/Benbecker69/finale-project-security-ilias/actions/workflows/security.yml)
+
 > Projet d'évaluation **Sécurité web avancée**. Cycle complet de sécurité applicative :
 > développement vulnérable → audit → exploitation → documentation → correction →
 > sécurisation → pipeline DevSecOps.
@@ -12,7 +14,7 @@ versions afin de démontrer une compréhension **offensive et défensive** de la
 
 | Branche | Contenu |
 |---------|---------|
-| `main` | Présentation, plan de travail (`CLAUDE.md`), ce README. |
+| `main` | Présentation du projet (ce README). |
 | `vulnerable` | Application **volontairement vulnérable** (≥ 6 failles) + audit + preuves. |
 | `secure` | Application **corrigée et sécurisée** + **pipeline CI/CD DevSecOps**. |
 
