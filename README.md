@@ -1,50 +1,40 @@
-# ShopSec — branche `vulnerable` ⚠️
+# ShopSec — branche `secure` ✅
 
-> **Version volontairement vulnérable** d'un mini e-commerce (Node.js/Express + Vue 3 + SQLite).
-> Contient **9 vulnérabilités intentionnelles** exploitables, documentées dans
-> [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md).
+> **Version corrigée et sécurisée** du mini e-commerce (Node.js/Express + Vue 3 + SQLite).
+> Chaque vulnérabilité de la branche `vulnerable` est corrigée **à la racine**, et une
+> **pipeline DevSecOps** (GitHub Actions) automatise les contrôles de sécurité.
 >
-> 🚫 **Ne jamais déployer ni exposer publiquement.** Usage pédagogique, en local uniquement.
-
-La version corrigée + la pipeline DevSecOps sont sur la branche **`secure`**.
-
----
+> Audit complet et correspondance faille → correction → validation :
+> [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md).
 
 ## 🧱 Stack
 
-- **Backend** : Node.js 24, Express, `node:sqlite` (SQLite intégré), JWT.
+- **Backend** : Node.js 24, Express, `node:sqlite`, JWT (`jsonwebtoken@9`), **bcryptjs**,
+  **Helmet**, **express-rate-limit**.
 - **Frontend** : Vue 3, Vite, Vue Router.
-- **Tests** : Vitest + Supertest.
-
-## 📂 Structure
-
-```
-backend/    API REST Express + SQLite (auth, products, orders, reviews, admin)
-frontend/   SPA Vue 3 (login, catalogue, avis, commandes, espace admin)
-exploits/   scripts d'exploitation reproductibles + preuves HTTP (output/)
-screenshots/ captures navigateur des failles
-```
+- **Tests** : Vitest + Supertest (fonctionnels **+ non-régression sécurité**).
 
 ## 🚀 Installation & lancement
 
-Prérequis : **Node.js ≥ 20** (testé sur Node 24) et npm.
+Prérequis : **Node.js ≥ 20**, npm.
 
 ### 1) Backend (port 4000)
 ```bash
 cd backend
+cp .env.example .env       # puis renseigner un JWT_SECRET fort :
+                           # node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 npm install
-npm run seed     # crée et peuple la base SQLite (idempotent)
-npm start        # API : http://localhost:4000
+npm run seed               # crée la base SQLite (mots de passe hachés bcrypt)
+npm start                  # API : http://localhost:4000
 ```
+> Sans `.env`, le serveur démarre quand même en générant un secret éphémère (dev only).
 
 ### 2) Frontend (port 5173)
 ```bash
 cd frontend
 npm install
-npm run dev      # SPA : http://localhost:5173
+npm run dev                # SPA : http://localhost:5173
 ```
-
-Ouvrir http://localhost:5173.
 
 ## 👤 Comptes de test
 
@@ -54,45 +44,48 @@ Ouvrir http://localhost:5173.
 | user  | `alice@shopsec.local` | `Alice123!`  |
 | user  | `bob@shopsec.local`   | `Bob123!`    |
 
-> La **commande #2 appartient à bob** (cible de la démonstration IDOR par alice).
-
 ## 🧪 Tests
 ```bash
-cd backend && npm test     # 8 tests fonctionnels
+cd backend && npm test     # 16 tests (5 fonctionnels + 11 non-régression sécurité)
 ```
 
-## 💥 Rejouer les exploitations
+## 🛡️ Corrections appliquées (résumé)
 
-Avec le backend lancé sur `:4000` :
-```bash
-bash exploits/run_all.sh   # preuves générées dans exploits/output/
-```
+| Faille (vulnerable) | Correction (secure) |
+|---------------------|----------------------|
+| IDOR / BOLA | contrôle d'ownership en base (`WHERE id=? AND user_id=?`) |
+| Injection SQL | requêtes **paramétrées** (prepared statements) |
+| Stored XSS | rendu **texte** (plus de `v-html`) + **CSP** (Helmet) |
+| Auth faible | **bcrypt**, **rate limiting**, message générique, **expiration** du token |
+| Mass Assignment | **whitelist** des champs ; `role` jamais accepté du client |
+| Misconfig / Info Disclosure | suppression `/api/debug`, **Helmet** (CSP/HSTS/X-Frame…), erreurs génériques, aucun hash exposé |
+| Broken Access Control (admin) | middleware **`requireAdmin`** |
+| CORS permissif | **allowlist** d'origines explicite |
+| JWT non sécurisé | secret fort via env, **expiration**, secret non committé |
 
-Captures navigateur (optionnel, nécessite Playwright) :
-```bash
-cd tools && npm install && npx playwright install chromium
-# backend :4000 + frontend :5173 lancés, puis :
-node screenshots.mjs       # captures dans screenshots/
-```
+## ⚙️ Pipeline DevSecOps — `.github/workflows/security.yml`
 
-## 🎯 Vulnérabilités (voir `SECURITY_AUDIT.md` pour le détail)
+Déclenchée sur `push` / `pull_request`. Jobs :
 
-| ID | Faille | Endpoint / zone |
-|----|--------|-----------------|
-| VULN-01 | IDOR / BOLA | `GET /api/orders/:id` |
-| VULN-02 | Injection SQL | `GET /api/products?search=` |
-| VULN-03 | Stored XSS | avis produit (`v-html`) |
-| VULN-04 | Authentification faible | `POST /api/auth/login` |
-| VULN-05 | Mass Assignment (élévation de privilège) | `register`, `PUT /api/users/me` |
-| VULN-06 | Misconfiguration / Information Disclosure | `/api/debug`, erreurs, headers |
-| VULN-07 | Broken Access Control (admin) | `/api/admin/*` |
-| VULN-08 | CORS permissif | global |
-| VULN-09 | JWT non sécurisé (secret faible, pas d'expiration, localStorage) | auth |
+| Job | Outil | Bloquant |
+|-----|-------|----------|
+| Application tests | Vitest + build Vue | ✅ |
+| SAST | **Semgrep** (`p/owasp-top-ten`, `p/javascript`) | ✅ (sévérité ERROR) |
+| SCA | **npm audit** (`--omit=dev --audit-level=high`) | ✅ |
+| Secret scanning | **Gitleaks** (config `.gitleaks.toml`) | ✅ |
+| DAST | **OWASP ZAP baseline** | ⚠️ (rapport) |
+
+> Résultats détaillés des scans : [`SECURITY_AUDIT.md` §8](./SECURITY_AUDIT.md).
 
 ---
 
-## 📑 Documents
+## 📂 Structure
 
-- [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md) — rapport d'audit complet (cause, exploitation,
-  preuve, impact, criticité, correction, validation).
-- `screenshots/` — preuves visuelles. `exploits/output/` — preuves HTTP.
+```
+backend/    API REST sécurisée (Express, SQLite, JWT, bcrypt, Helmet, rate-limit)
+frontend/   SPA Vue 3 (rendu texte des avis, plus de v-html)
+.github/workflows/security.yml   pipeline DevSecOps
+.gitleaks.toml                   config secret scanning
+SECURITY_AUDIT.md                rapport d'audit complet
+screenshots/ , exploits/         preuves de la version vulnérable (référence)
+```
