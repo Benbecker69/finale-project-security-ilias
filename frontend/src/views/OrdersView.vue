@@ -33,6 +33,6 @@ onMounted(load);
     </tbody>
   </table>
   <p class="muted">
-    IDOR demo: open <code>/orders/2</code> as alice to read bob's order (change the id in the URL).
+    Ownership is enforced server-side: opening another user's order id returns 404.
   </p>
 </template>

@@ -1,7 +1,8 @@
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-// VULNERABLE: the JWT is read from localStorage. Any XSS (see the stored XSS on
-// product reviews) can steal it via document/localStorage access.
+// NOTE: the JWT is kept in localStorage for simplicity. The stored XSS that made this
+// dangerous is fixed (text rendering + CSP) and tokens now expire. A further hardening
+// step (documented in SECURITY_AUDIT.md §9) is to move to an HttpOnly cookie + CSRF.
 function authHeaders() {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};

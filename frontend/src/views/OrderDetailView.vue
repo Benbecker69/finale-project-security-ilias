@@ -11,8 +11,7 @@ async function load() {
   error.value = '';
   order.value = null;
   try {
-    // VULNERABLE (IDOR): the backend returns any order by id with no ownership
-    // check. Changing the id in the URL exposes another user's order.
+    // SECURED (IDOR): the backend enforces ownership; a foreign id returns 404.
     order.value = await api(`/api/orders/${route.params.id}`);
   } catch (e) {
     error.value = e.message;

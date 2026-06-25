@@ -11,7 +11,7 @@ function logout() {
 
 <template>
   <nav>
-    <strong>🛒 ShopSec <span class="badge">vulnerable</span></strong>
+    <strong>🛒 ShopSec <span class="badge">secure</span></strong>
     <router-link to="/products">Products</router-link>
     <router-link v-if="auth.isLoggedIn" to="/orders">My orders</router-link>
     <router-link v-if="auth.isLoggedIn" to="/admin">Admin</router-link>

@@ -1,25 +1,20 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { api, BASE } from '../api/client.js';
+import { api } from '../api/client.js';
+import { auth } from '../store/auth.js';
 
 const users = ref([]);
-const debug = ref(null);
 const error = ref('');
 
 async function load() {
   error.value = '';
   try {
-    // VULNERABLE (Broken Access Control): this "admin" call succeeds for any
-    // authenticated user because the backend never checks the role.
+    // SECURED: this now returns 403 for non-admin users (server-side role check),
+    // and never includes password hashes.
     users.value = await api('/api/admin/users');
   } catch (e) {
-    error.value = e.message;
+    error.value = e.status === 403 ? 'Forbidden — admin role required.' : e.message;
   }
-  try {
-    // VULNERABLE (Information Disclosure): unauthenticated debug endpoint.
-    const res = await fetch(`${BASE}/api/debug`);
-    debug.value = await res.json();
-  } catch { /* ignore */ }
 }
 onMounted(load);
 </script>
@@ -27,31 +22,17 @@ onMounted(load);
 <template>
   <h2>Admin — users</h2>
   <p class="muted">
-    This page calls <code>/api/admin/users</code>. On the vulnerable build it works
-    even for a normal "user" account (no role check).
+    Server-side role enforcement: this page only returns data for an <strong>admin</strong> token.
+    Current role: <span class="badge">{{ auth.user?.role }}</span>
   </p>
   <p v-if="error" class="error">{{ error }}</p>
-  <table class="card">
-    <thead><tr><th>id</th><th>username</th><th>email</th><th>role</th><th>password hash</th></tr></thead>
+  <table class="card" v-if="users.length">
+    <thead><tr><th>id</th><th>username</th><th>email</th><th>role</th></tr></thead>
     <tbody>
       <tr v-for="u in users" :key="u.id">
         <td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.email }}</td>
         <td><span class="badge">{{ u.role }}</span></td>
-        <td class="muted" style="font-size:11px">{{ u.password }}</td>
       </tr>
     </tbody>
   </table>
-
-  <h3>Leaked config (/api/debug)</h3>
-  <details class="card">
-    <summary class="muted">
-      Unauthenticated <code>/api/debug</code> leaks secrets (jwtSecret, API keys) and the full
-      server environment — click to expand.
-    </summary>
-    <p class="error" v-if="debug">
-      jwtSecret = <code>{{ debug.jwtSecret }}</code> · stripeSecretKey =
-      <code>{{ debug.stripeSecretKey }}</code>
-    </p>
-    <pre style="white-space: pre-wrap; font-size: 12px;">{{ debug }}</pre>
-  </details>
 </template>

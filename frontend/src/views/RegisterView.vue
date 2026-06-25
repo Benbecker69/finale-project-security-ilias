@@ -6,20 +6,17 @@ import { auth } from '../store/auth.js';
 const username = ref('');
 const email = ref('');
 const password = ref('');
-// VULNERABLE (Mass Assignment): the form exposes a "role" field. The backend
-// trusts it, so anyone can self-register as admin.
-const role = ref('user');
 const error = ref('');
 const router = useRouter();
 
 async function submit() {
   error.value = '';
   try {
+    // SECURED: no "role" field — the backend always assigns the "user" role.
     await auth.register({
       username: username.value,
       email: email.value,
       password: password.value,
-      role: role.value,
     });
     router.push('/products');
   } catch (e) {
@@ -34,11 +31,6 @@ async function submit() {
     <input v-model="username" placeholder="username" />
     <input v-model="email" placeholder="email" />
     <input v-model="password" type="password" placeholder="password" />
-    <label class="muted">role (intentionally exposed)</label>
-    <select v-model="role">
-      <option value="user">user</option>
-      <option value="admin">admin</option>
-    </select>
     <button @click="submit">Create account</button>
     <p v-if="error" class="error">{{ error }}</p>
   </div>

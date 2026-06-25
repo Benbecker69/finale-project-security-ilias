@@ -51,14 +51,14 @@ onMounted(load);
 
   <div class="card" v-for="r in reviews" :key="r.id">
     <strong>{{ r.author }}</strong> <span class="badge">★ {{ r.rating }}</span>
-    <!-- VULNERABLE (Stored XSS): review content is rendered as raw HTML with v-html.
-         A stored payload like <img src=x onerror=alert(document.cookie)> executes here. -->
-    <div v-html="r.content"></div>
+    <!-- SECURED (Stored XSS): content is rendered as TEXT via {{ }} interpolation, which
+         Vue HTML-escapes. No v-html. A strict CSP (Helmet) is the defense-in-depth layer. -->
+    <div class="review-content">{{ r.content }}</div>
   </div>
 
   <div class="card" v-if="auth.isLoggedIn">
     <h4>Add a review</h4>
-    <textarea v-model="content" rows="3" placeholder="Your review (try: <img src=x onerror=alert(document.cookie)>)"></textarea>
+    <textarea v-model="content" rows="3" placeholder="Your review"></textarea>
     <select v-model="rating">
       <option v-for="n in 5" :key="n" :value="n">{{ n }} ★</option>
     </select>

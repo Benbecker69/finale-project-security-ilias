@@ -10,7 +10,7 @@ const rawResponse = ref('');
 async function load() {
   error.value = '';
   try {
-    // VULNERABLE: the search term is sent straight to a SQL-injectable endpoint.
+    // SECURED: the backend uses a parameterized query for the search term.
     const q = search.value ? `?search=${encodeURIComponent(search.value)}` : '';
     const data = await api(`/api/products${q}`);
     products.value = data;
@@ -27,13 +27,9 @@ onMounted(load);
   <h2>Products</h2>
   <div class="card">
     <div style="display: flex; gap: 8px;">
-      <input v-model="search" placeholder="Search products (try a SQL injection)..." @keyup.enter="load" />
+      <input v-model="search" placeholder="Search products..." @keyup.enter="load" />
       <button @click="load">Search</button>
     </div>
-    <p class="muted">
-      Demo SQLi payload:
-      <code>zzz' UNION SELECT id, username, email, password, role, 'x', created_at FROM users --</code>
-    </p>
   </div>
 
   <p v-if="error" class="error">{{ error }}</p>
@@ -48,7 +44,7 @@ onMounted(load);
   </div>
 
   <details class="card">
-    <summary class="muted">Raw API response (shows leaked rows on injection)</summary>
+    <summary class="muted">Raw API response</summary>
     <pre style="white-space: pre-wrap;">{{ rawResponse }}</pre>
   </details>
 </template>

@@ -38,7 +38,9 @@ Thumbs.db
 .idea/
 .vscode/
 
-# NOTE: .env is intentionally NOT globally ignored.
-# On the `vulnerable` branch a demo .env with FAKE secrets is committed on purpose
-# to demonstrate the "exposed .env / secret in repo" vulnerability (detected by Gitleaks
-# in the secure pipeline). On the `secure` branch, .env is ignored — see that branch's .gitignore.
+# SECURED: secrets are never committed. .env is git-ignored on this branch; use
+# .env.example as a template and provide real values via the environment / CI secret store.
+.env
+**/.env
+!.env.example
+!**/.env.example

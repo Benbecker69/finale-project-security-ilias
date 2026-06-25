@@ -1,7 +1,8 @@
 import { reactive } from 'vue';
 import { api } from '../api/client.js';
 
-// VULNERABLE: token persisted in localStorage (readable by any injected script).
+// Token persisted in localStorage. XSS (the original theft vector) is fixed and tokens
+// expire; see SECURITY_AUDIT.md §9 for the HttpOnly-cookie hardening note.
 export const auth = reactive({
   token: localStorage.getItem('token') || null,
   user: JSON.parse(localStorage.getItem('user') || 'null'),
