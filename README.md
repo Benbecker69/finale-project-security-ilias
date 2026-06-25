@@ -1,61 +1,98 @@
-# ShopSec — Application vulnérable, sécurisation & pipeline DevSecOps
+# ShopSec — branche `vulnerable` ⚠️
 
-> Projet d'évaluation **Sécurité web avancée**. Cycle complet de sécurité applicative :
-> développement vulnérable → audit → exploitation → documentation → correction →
-> sécurisation → pipeline DevSecOps.
+> **Version volontairement vulnérable** d'un mini e-commerce (Node.js/Express + Vue 3 + SQLite).
+> Contient **9 vulnérabilités intentionnelles** exploitables, documentées dans
+> [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md).
+>
+> 🚫 **Ne jamais déployer ni exposer publiquement.** Usage pédagogique, en local uniquement.
 
-**ShopSec** est un mini e-commerce (gestion de produits, commandes, avis) développé en
-**Node.js / Express** (API REST) + **Vue 3** (interface), volontairement décliné en deux
-versions afin de démontrer une compréhension **offensive et défensive** de la sécurité web.
-
-## 📦 Organisation du dépôt (branches)
-
-| Branche | Contenu |
-|---------|---------|
-| `main` | Présentation, plan de travail (`CLAUDE.md`), ce README. |
-| `vulnerable` | Application **volontairement vulnérable** (≥ 6 failles) + audit + preuves. |
-| `secure` | Application **corrigée et sécurisée** + **pipeline CI/CD DevSecOps**. |
-
-```bash
-git clone https://github.com/Benbecker69/finale-project-security-ilias.git
-cd finale-project-security-ilias
-
-git checkout vulnerable   # voir la version vulnérable
-git checkout secure       # voir la version sécurisée + pipeline
-```
-
-## 📚 Documents clés
-
-- **`SECURITY_AUDIT.md`** (branches `vulnerable` / `secure`) — rapport d'audit complet :
-  liste des vulnérabilités, fiches détaillées (cause, exploitation, preuve, impact,
-  criticité, correction, validation), pipeline et résultats de scans.
-- **`README.md`** de chaque branche — installation, lancement, comptes de test.
-- **`screenshots/`** — preuves d'exploitation.
-
-## 🧱 Stack technique
-
-- **Backend** : Node.js, Express, better-sqlite3 (SQLite), JWT.
-- **Frontend** : Vue 3, Vite, Vue Router, Pinia.
-- **Tests** : Vitest + Supertest.
-- **Pipeline (secure)** : GitHub Actions — Semgrep (SAST), npm audit (SCA),
-  Gitleaks (secret scanning), OWASP ZAP baseline (DAST), tests applicatifs.
-
-## 🎯 Vulnérabilités couvertes (branche `vulnerable`)
-
-1. Broken Access Control / **IDOR / BOLA**
-2. **Injection SQL**
-3. **Stored XSS**
-4. **Authentification faible** (secret JWT faible, pas d'expiration, brute force, messages révélateurs)
-5. **Mass Assignment** (élévation de privilège via `role`)
-6. **Security Misconfiguration / Information Disclosure**
-7. *(bonus)* Broken Access Control sur routes admin
-8. *(bonus)* Mauvaise configuration **CORS**
-9. *(bonus)* Stockage de token non sécurisé (`localStorage`) / JWT faible
-
-➡️ Détails, exploitation et corrections : voir **`SECURITY_AUDIT.md`**.
+La version corrigée + la pipeline DevSecOps sont sur la branche **`secure`**.
 
 ---
 
-> ⚠️ **Avertissement** : la branche `vulnerable` contient des failles **intentionnelles**.
-> Ne jamais déployer cette version en production ni l'exposer publiquement. Usage strictement
-> pédagogique, en local.
+## 🧱 Stack
+
+- **Backend** : Node.js 24, Express, `node:sqlite` (SQLite intégré), JWT.
+- **Frontend** : Vue 3, Vite, Vue Router.
+- **Tests** : Vitest + Supertest.
+
+## 📂 Structure
+
+```
+backend/    API REST Express + SQLite (auth, products, orders, reviews, admin)
+frontend/   SPA Vue 3 (login, catalogue, avis, commandes, espace admin)
+exploits/   scripts d'exploitation reproductibles + preuves HTTP (output/)
+screenshots/ captures navigateur des failles
+```
+
+## 🚀 Installation & lancement
+
+Prérequis : **Node.js ≥ 20** (testé sur Node 24) et npm.
+
+### 1) Backend (port 4000)
+```bash
+cd backend
+npm install
+npm run seed     # crée et peuple la base SQLite (idempotent)
+npm start        # API : http://localhost:4000
+```
+
+### 2) Frontend (port 5173)
+```bash
+cd frontend
+npm install
+npm run dev      # SPA : http://localhost:5173
+```
+
+Ouvrir http://localhost:5173.
+
+## 👤 Comptes de test
+
+| Rôle  | Email                 | Mot de passe |
+|-------|-----------------------|--------------|
+| admin | `admin@shopsec.local` | `Admin123!`  |
+| user  | `alice@shopsec.local` | `Alice123!`  |
+| user  | `bob@shopsec.local`   | `Bob123!`    |
+
+> La **commande #2 appartient à bob** (cible de la démonstration IDOR par alice).
+
+## 🧪 Tests
+```bash
+cd backend && npm test     # 8 tests fonctionnels
+```
+
+## 💥 Rejouer les exploitations
+
+Avec le backend lancé sur `:4000` :
+```bash
+bash exploits/run_all.sh   # preuves générées dans exploits/output/
+```
+
+Captures navigateur (optionnel, nécessite Playwright) :
+```bash
+cd tools && npm install && npx playwright install chromium
+# backend :4000 + frontend :5173 lancés, puis :
+node screenshots.mjs       # captures dans screenshots/
+```
+
+## 🎯 Vulnérabilités (voir `SECURITY_AUDIT.md` pour le détail)
+
+| ID | Faille | Endpoint / zone |
+|----|--------|-----------------|
+| VULN-01 | IDOR / BOLA | `GET /api/orders/:id` |
+| VULN-02 | Injection SQL | `GET /api/products?search=` |
+| VULN-03 | Stored XSS | avis produit (`v-html`) |
+| VULN-04 | Authentification faible | `POST /api/auth/login` |
+| VULN-05 | Mass Assignment (élévation de privilège) | `register`, `PUT /api/users/me` |
+| VULN-06 | Misconfiguration / Information Disclosure | `/api/debug`, erreurs, headers |
+| VULN-07 | Broken Access Control (admin) | `/api/admin/*` |
+| VULN-08 | CORS permissif | global |
+| VULN-09 | JWT non sécurisé (secret faible, pas d'expiration, localStorage) | auth |
+
+---
+
+## 📑 Documents
+
+- [`SECURITY_AUDIT.md`](./SECURITY_AUDIT.md) — rapport d'audit complet (cause, exploitation,
+  preuve, impact, criticité, correction, validation).
+- `screenshots/` — preuves visuelles. `exploits/output/` — preuves HTTP.
