@@ -43,5 +43,15 @@ onMounted(load);
   </table>
 
   <h3>Leaked config (/api/debug)</h3>
-  <pre class="card" style="white-space: pre-wrap; font-size: 12px;">{{ debug }}</pre>
+  <details class="card">
+    <summary class="muted">
+      Unauthenticated <code>/api/debug</code> leaks secrets (jwtSecret, API keys) and the full
+      server environment — click to expand.
+    </summary>
+    <p class="error" v-if="debug">
+      jwtSecret = <code>{{ debug.jwtSecret }}</code> · stripeSecretKey =
+      <code>{{ debug.stripeSecretKey }}</code>
+    </p>
+    <pre style="white-space: pre-wrap; font-size: 12px;">{{ debug }}</pre>
+  </details>
 </template>
