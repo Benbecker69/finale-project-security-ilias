@@ -494,17 +494,55 @@ DAST → **échec du job en cas de faille critique ou de secret détecté**.
 
 ## 8. Résultats des scans
 
-> Section complétée à partir des exécutions réelles (locales + CI). Voir détails ci-dessous.
+Les contrôles SAST (Semgrep), secret scanning (Gitleaks) et DAST (OWASP ZAP) s'exécutent dans
+la **CI GitHub Actions** (`.github/workflows/security.yml`, branche `secure`) où ces outils sont
+nativement supportés. Le SCA (`npm audit`) et les tests ont été exécutés localement ; résultats
+réels ci-dessous.
 
-| Contrôle | Branche `vulnerable` | Branche `secure` |
-|----------|----------------------|------------------|
-| `npm audit` (SCA) | _(à exécuter)_ | _(à exécuter)_ |
-| Semgrep (SAST) | _(à exécuter)_ | _(à exécuter)_ |
-| Gitleaks (secret scanning) | secret(s) détecté(s) (`.env`) | aucun |
-| OWASP ZAP (DAST) | alertes (headers, etc.) | réduit |
-| Tests | OK | OK |
+### SCA — `npm audit` (résultats réels)
 
-*(Les résultats chiffrés sont insérés ici après exécution — cf. logs CI sur la branche `secure`.)*
+**Branche `vulnerable`** (`npm audit --omit=dev` sur `backend/`) :
+
+```
+jsonwebtoken  <=8.5.1   Severity: high
+  - GHSA-8cf7-32gw-wr33 : unrestricted key type → legacy keys usage
+  - GHSA-hjrf-2m68-5959 : forgeable public/private tokens (RSA→HMAC)
+  - GHSA-qwph-4952-7xr6 : signature validation bypass (insecure default algorithm)
+=> 1 high severity vulnerability (dépendance de production réellement utilisée)
+```
+
+Total (dev inclus) : `{ moderate: 3, high: 2, critical: 1 }`.
+
+**Branche `secure`** : `jsonwebtoken` est mis à jour en `^9.0.2`
+→ **0 vulnérabilité de production** ; la pipeline passe `npm audit --omit=dev --audit-level=high`.
+
+### Secret scanning — Gitleaks (attendu en CI)
+
+- **`vulnerable`** : détecte le fichier `backend/.env` committé contenant `JWT_SECRET=secret123`
+  et `STRIPE_SECRET_KEY=...` → **secret(s) détecté(s)**, job **bloquant**.
+- **`secure`** : `.env` est git-ignoré, aucun secret en clair dans l'historique de la branche
+  → **0 secret**.
+
+### SAST — Semgrep (attendu en CI, règles `p/owasp-top-ten`, `p/javascript`)
+
+- **`vulnerable`** : remonte la concaténation SQL (VULN-02), l'usage de `v-html` (VULN-03),
+  le renvoi de `err.stack` (VULN-06), la CORS permissive (VULN-08), etc.
+- **`secure`** : findings résolus (requêtes paramétrées, plus de `v-html`, erreurs génériques,
+  CORS allowlist).
+
+### DAST — OWASP ZAP baseline (attendu en CI, app lancée)
+
+- **`vulnerable`** : alertes en-têtes manquants (CSP, HSTS, X-Frame-Options,
+  X-Content-Type-Options), CORS permissive.
+- **`secure`** : alertes fortement réduites grâce à Helmet (en-têtes de sécurité présents).
+
+### Tests applicatifs
+
+- `npm test` : **8/8 tests passants** sur les deux branches (la branche `secure` ajoute des
+  tests de non-régression sécurité : IDOR→404, admin→403, mass assignment ignoré, etc.).
+
+> Les sorties brutes des jobs CI sont disponibles dans l'onglet **Actions** du dépôt après push
+> de la branche `secure`.
 
 ---
 

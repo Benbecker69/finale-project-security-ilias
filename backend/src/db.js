@@ -1,7 +1,12 @@
-import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { dbPath } from './config.js';
+
+// Load the built-in node:sqlite via createRequire so bundlers/test runners
+// (Vite/Vitest) don't try to statically resolve it as a file dependency.
+const require = createRequire(import.meta.url);
+const { DatabaseSync } = require('node:sqlite');
 
 // Ensure the data directory exists.
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
