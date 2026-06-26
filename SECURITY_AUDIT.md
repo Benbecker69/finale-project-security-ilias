@@ -4,6 +4,21 @@
 > Application : **ShopSec**, un mini e-commerce (Node.js/Express + Vue 3 + SQLite).
 > Deux branches : **`vulnerable`** (failles intentionnelles) et **`secure`** (corrigée + pipeline CI/CD).
 
+### 📖 Comment lire ce rapport (pour le correcteur)
+
+Ce document est le **livrable central** de l'audit. Il suit le cycle attendu
+*faille → exploitation → impact → correction → validation*, pour chacune des **9 vulnérabilités** :
+
+- **§5** donne la **liste synthétique** des failles (catégorie OWASP + criticité) — vue d'ensemble.
+- **§6** contient une **fiche détaillée par vulnérabilité** (VULN-01 → VULN-09) : type, endpoint,
+  description, cause technique (avec extrait de code), exploitation (payload), **preuve**, impact,
+  criticité, **correction appliquée** (extrait de code) et **validation après correction**.
+- **§7 et §8** décrivent la **pipeline DevSecOps** et ses **résultats réels** (run CI vert).
+- **§9** explique la **méthode de preuve** retenue (voir aussi la note sur Burp Suite).
+
+Chaque fiche renvoie à une **preuve** : une **capture** dans `screenshots/` et une **requête/réponse
+HTTP** dans `exploits/output/` (rejouable via `exploits/run_all.sh`).
+
 ---
 
 ## 1. Présentation du projet
@@ -565,17 +580,40 @@ Total (dev inclus) : `{ moderate: 3, high: 2, critical: 1 }`.
 
 ## 9. Limites du projet
 
-- **Captures** : l'environnement de développement étant headless (sans Burp Suite GUI), les
-  preuves sont fournies via (a) des **captures navigateur automatisées** (Playwright,
-  `screenshots/`) et (b) des **requêtes/réponses HTTP reproductibles** (`exploits/`). La
-  reproduction manuelle avec Burp est possible avec les mêmes payloads.
-- **Stockage du token** : la version sécurisée conserve le JWT côté client. Un durcissement
-  supplémentaire consisterait à utiliser un cookie `HttpOnly`/`SameSite` + protection CSRF ;
-  ce choix est documenté mais non imposé ici (compromis pédagogique).
-- **Base de données** : SQLite (intégré) pour faciliter l'installation ; un déploiement réel
-  utiliserait PostgreSQL/MySQL.
-- **Périmètre fonctionnel volontairement minimal** : l'accent est mis sur la logique de
-  sécurité, conformément aux consignes.
+### 9.1 Méthode de preuve des vulnérabilités (Burp Suite non disponible)
+
+Le sujet suggère d'illustrer les failles avec des captures **Burp Suite**. Ce projet a été réalisé
+sur un **poste RDP d'entreprise**, qui constitue mon **unique environnement de travail** (je ne
+dispose pas d'un autre ordinateur : le RDP fait office de poste personnel). Sur cet environnement,
+je **n'ai pas les droits administrateur** nécessaires pour installer de nouveaux logiciels — en
+particulier **Burp Suite** ainsi que le **runtime Java**, **indispensable** au fonctionnement de
+Burp. Burp n'a donc **pas pu être installé ni utilisé**.
+
+Les preuves d'exploitation sont par conséquent fournies sous une forme **équivalente, complète et
+entièrement reproductible**, qui contient exactement ce qu'exigent les consignes — *requête HTTP
+vulnérable, payload, réponse serveur, résultat côté application* :
+
+1. **Captures du navigateur** (`screenshots/`) — le **résultat visible** de chaque attaque côté
+   application (IDOR, injection SQL, XSS exécuté, accès admin non autorisé, etc.).
+2. **Requêtes / réponses HTTP complètes** (`exploits/output/`) — pour chaque faille : la **requête
+   exacte**, le **payload** employé et la **réponse** du serveur. L'ensemble est **rejouable en une
+   commande** via `exploits/run_all.sh` (contre le backend lancé localement).
+
+Autrement dit, **seul l'outil de capture diffère** de Burp : le contenu probant (requête, payload,
+réponse, impact) est présent, lisible et vérifiable pour chaque vulnérabilité importante. La
+démarche est même **rejouable automatiquement**, ce qui la rend plus reproductible qu'une capture
+d'écran manuelle.
+
+### 9.2 Autres limites
+
+- **Stockage du token** : la version sécurisée conserve le JWT côté client (`localStorage`). Un
+  durcissement supplémentaire consisterait à utiliser un cookie `HttpOnly` / `SameSite` + protection
+  CSRF ; ce choix est documenté mais volontairement non imposé ici (compromis pédagogique, la cause
+  du vol de token — le XSS — étant déjà corrigée).
+- **Base de données** : SQLite (module intégré `node:sqlite`) pour une installation sans serveur
+  externe ; un déploiement réel utiliserait PostgreSQL/MySQL.
+- **Périmètre fonctionnel volontairement minimal** : conformément aux consignes, l'accent est mis
+  sur la **qualité de la logique de sécurité** plutôt que sur la richesse fonctionnelle.
 
 ---
 
