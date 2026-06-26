@@ -133,12 +133,21 @@ screenshots/  captures navigateur + capture de la pipeline
 SECURITY_AUDIT.md                rapport d'audit complet
 ```
 
-## ⚠️ Note sur les captures (transparence)
+## 📸 Note sur les preuves (Burp Suite non disponible)
 
-Le sujet suggère des captures *Burp Suite*. L'environnement de réalisation étant **headless** (sans
-interface graphique), les preuves sont fournies via des **captures navigateur automatisées (Playwright)**
-et des **requêtes/réponses HTTP reproductibles (curl)** — équivalentes et rejouables avec les mêmes
-payloads. Voir `SECURITY_AUDIT.md` §9 (Limites).
+Le sujet suggère des captures **Burp Suite**. Ce projet a été réalisé sur un **poste RDP
+d'entreprise**, qui est mon **unique environnement de travail** (je ne dispose pas d'un autre poste).
+Sur ce RDP, je **n'ai pas les droits administrateur** permettant d'installer **Burp Suite** ni le
+**runtime Java** qui lui est **indispensable**. Burp n'a donc pas pu être utilisé.
+
+Les preuves d'exploitation sont fournies sous une forme **équivalente et entièrement reproductible**,
+qui contient exactement ce qu'exigent les consignes (requête, payload, réponse, résultat) :
+- **captures du navigateur** illustrant le résultat de chaque attaque → `screenshots/` ;
+- **requêtes / réponses HTTP** complètes avec payloads → `exploits/output/`, **rejouables** via
+  `exploits/run_all.sh`.
+
+Seul l'**outil de capture** diffère de Burp ; le contenu probant est présent et vérifiable pour
+chaque faille. Détails en **§9 du [`SECURITY_AUDIT.md`](https://github.com/Benbecker69/finale-project-security-ilias/blob/secure/SECURITY_AUDIT.md)**.
 
 > 🚫 **Avertissement** : la branche `vulnerable` contient des failles **intentionnelles**.
 > Ne jamais la déployer ni l'exposer publiquement — usage strictement pédagogique, en local.
